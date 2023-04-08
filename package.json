@@ -1,5 +1,4 @@
 {
-  "private": true,
   "displayName": "Fenix TFT Wifi thermostats",
   "name": "homebridge-fenix-tft-wifi",
   "version": "1.0.0",
