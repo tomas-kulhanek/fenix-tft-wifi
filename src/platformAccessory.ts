@@ -30,11 +30,9 @@ export class FenixTFTThermostatPlatformAccessory {
     informationService
       .setCharacteristic(platform.api.hap.Characteristic.Manufacturer, 'ThermoSmart B.V.')
       .setCharacteristic(platform.api.hap.Characteristic.Model, 'Fenix TFT');
-    //.setCharacteristic(platform.api.hap.Characteristic.SerialNumber, accessory.context.thermostat);
-    informationService.setCharacteristic(platform.api.hap.Characteristic.SoftwareRevision, process.env.npm_package_version as string);
+
     this.service = this.accessory.getService(platform.api.hap.Service.Thermostat)
       || this.accessory.addService(platform.api.hap.Service.Thermostat);
-
 
     this.service.getCharacteristic(platform.Characteristic.CurrentHeatingCoolingState)
       .onGet(this.handleCurrentHeatingCoolingStateGet.bind(this))
