@@ -1,141 +1,214 @@
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import {Formats, Logger, Perms, PlatformAccessory, Service} from 'homebridge';
+import {FenixTFTWifiPlatform} from './platform';
+import ThermostatApi from './Api/ThermostatApi';
 
-import { ExampleHomebridgePlatform } from './platform';
+export class FenixTFTThermostatPlatformAccessory {
 
-/**
- * Platform Accessory
- * An instance of this class is created for each accessory your platform registers
- * Each accessory may expose multiple services of different service types.
- */
-export class ExamplePlatformAccessory {
   private service: Service;
-
-  /**
-   * These are just used to create a working example
-   * You should implement your own code to track the state of your accessory
-   */
-  private exampleStates = {
-    On: false,
-    Brightness: 100,
-  };
+  private name: string;
+  private logger: Logger;
+  private tValueDisplayUnit = this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS;
+  private tValueTargetTemperature = 0;
+  private tValueCurrentTemperature = 0;
+  private tValueTargetHeatingCoolingState = this.platform.Characteristic.TargetHeatingCoolingState.OFF;
+  private tValueCurrentHeatingCoolingState = this.platform.Characteristic.CurrentHeatingCoolingState.HEAT;
 
   constructor(
-    private readonly platform: ExampleHomebridgePlatform,
+    private readonly platform: FenixTFTWifiPlatform,
     private readonly accessory: PlatformAccessory,
+    private readonly tApi: ThermostatApi,
+    private temperatureCheckInterval: number,
   ) {
+    this.logger = platform.log;
+    this.name = platform.config.name as string;
 
-    // set accessory information
-    this.accessory.getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Default-Manufacturer')
-      .setCharacteristic(this.platform.Characteristic.Model, 'Default-Model')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, 'Default-Serial');
+    this.logger.debug('Initializing Fenix TFT accessory', this.accessory.displayName);
+    this.updateValues();
+    // Initialize the AccessoryInformation Service
+    const informationService = this.accessory.getService(platform.api.hap.Service.AccessoryInformation)
+      || this.accessory.addService(platform.api.hap.Service.AccessoryInformation);
+    informationService
+      .setCharacteristic(platform.api.hap.Characteristic.Manufacturer, 'ThermoSmart B.V.')
+      .setCharacteristic(platform.api.hap.Characteristic.Model, 'Fenix TFT');
+    //.setCharacteristic(platform.api.hap.Characteristic.SerialNumber, accessory.context.thermostat);
+    if (typeof process.env.npm_package_version === "string") {
+      informationService.setCharacteristic(platform.api.hap.Characteristic.SoftwareRevision, process.env.npm_package_version);
+    }
+    this.service = this.accessory.getService(platform.api.hap.Service.Thermostat)
+      || this.accessory.addService(platform.api.hap.Service.Thermostat);
 
-    // get the LightBulb service if it exists, otherwise create a new LightBulb service
-    // you can create multiple services for each accessory
-    this.service = this.accessory.getService(this.platform.Service.Lightbulb) || this.accessory.addService(this.platform.Service.Lightbulb);
 
-    // set the service name, this is what is displayed as the default name on the Home app
-    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.exampleDisplayName);
+    this.service.getCharacteristic(platform.Characteristic.CurrentHeatingCoolingState)
+      .onGet(this.handleCurrentHeatingCoolingStateGet.bind(this))
+      .onSet(this.handleCurrentHeatingCoolingStateSet.bind(this))
+      .setProps({
+        maxValue: 1,
+        minValue: 0,
+        validValues: [platform.Characteristic.TargetHeatingCoolingState.OFF, platform.Characteristic.TargetHeatingCoolingState.HEAT],
+        perms: [Perms.PAIRED_READ, Perms.PAIRED_WRITE, Perms.NOTIFY],
+      });
 
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/Lightbulb
+    this.service.getCharacteristic(platform.Characteristic.TargetHeatingCoolingState)
+      .onGet(this.handleTargetHeatingCoolingStateGet.bind(this))
+      .onSet(this.handleTargetHeatingCoolingStateSet.bind(this))
+      .setProps({
+        format: Formats.UINT8,
+        maxValue: 1,
+        minValue: 0,
+        validValues: [platform.Characteristic.TargetHeatingCoolingState.OFF, platform.Characteristic.TargetHeatingCoolingState.HEAT],
+        perms: [Perms.PAIRED_READ, Perms.PAIRED_WRITE, Perms.NOTIFY],
+      });
 
-    // register handlers for the On/Off Characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.On)
-      .onSet(this.setOn.bind(this))                // SET - bind to the `setOn` method below
-      .onGet(this.getOn.bind(this));               // GET - bind to the `getOn` method below
+    this.service.getCharacteristic(platform.Characteristic.CurrentTemperature)
+      .onGet(this.handleCurrentTemperatureGet.bind(this));
 
-    // register handlers for the Brightness Characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.Brightness)
-      .onSet(this.setBrightness.bind(this));       // SET - bind to the 'setBrightness` method below
+    if (this.tValueDisplayUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
+      this.service.getCharacteristic(platform.Characteristic.TargetTemperature)
+        .onGet(this.handleTargetTemperatureGet.bind(this))
+        .onSet(this.handleTargetTemperatureSet.bind(this))
+        .setProps({
+          minValue: 0,
+          maxValue: 27,
+          minStep: 0.5,
+        }).setValue(this.tValueTargetTemperature);
+    } else {
+      this.service.getCharacteristic(platform.Characteristic.TargetTemperature)
+        .onGet(this.handleTargetTemperatureGet.bind(this))
+        .onSet(this.handleTargetTemperatureSet.bind(this))
+        .setProps({
+          minValue: 0,
+          maxValue: 100,
+          minStep: 1,
+        }).setValue(this.tValueTargetTemperature);
+    }
 
-    /**
-     * Creating multiple services of the same type.
-     *
-     * To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
-     * when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-     * this.accessory.getService('NAME') || this.accessory.addService(this.platform.Service.Lightbulb, 'NAME', 'USER_DEFINED_SUBTYPE_ID');
-     *
-     * The USER_DEFINED_SUBTYPE must be unique to the platform accessory (if you platform exposes multiple accessories, each accessory
-     * can use the same sub type id.)
-     */
+    this.service.getCharacteristic(platform.Characteristic.TemperatureDisplayUnits)
+      .onGet(this.handleTemperatureDisplayUnitsGet.bind(this))
+      .onSet(this.handleTemperatureDisplayUnitsSet.bind(this));
 
-    // Example: add two "motion sensor" services to the accessory
-    const motionSensorOneService = this.accessory.getService('Motion Sensor One Name') ||
-      this.accessory.addService(this.platform.Service.MotionSensor, 'Motion Sensor One Name', 'YourUniqueIdentifier-1');
-
-    const motionSensorTwoService = this.accessory.getService('Motion Sensor Two Name') ||
-      this.accessory.addService(this.platform.Service.MotionSensor, 'Motion Sensor Two Name', 'YourUniqueIdentifier-2');
-
-    /**
-     * Updating characteristics values asynchronously.
-     *
-     * Example showing how to update the state of a Characteristic asynchronously instead
-     * of using the `on('get')` handlers.
-     * Here we change update the motion sensor trigger states on and off every 10 seconds
-     * the `updateCharacteristic` method.
-     *
-     */
-    let motionDetected = false;
-    setInterval(() => {
-      // EXAMPLE - inverse the trigger
-      motionDetected = !motionDetected;
-
-      // push the new value to HomeKit
-      motionSensorOneService.updateCharacteristic(this.platform.Characteristic.MotionDetected, motionDetected);
-      motionSensorTwoService.updateCharacteristic(this.platform.Characteristic.MotionDetected, !motionDetected);
-
-      this.platform.log.debug('Triggering motionSensorOneService:', motionDetected);
-      this.platform.log.debug('Triggering motionSensorTwoService:', !motionDetected);
-    }, 10000);
+    setInterval(() => this.updateValues(), this.temperatureCheckInterval);
   }
 
-  /**
-   * Handle "SET" requests from HomeKit
-   * These are sent when the user changes the state of an accessory, for example, turning on a Light bulb.
-   */
-  async setOn(value: CharacteristicValue) {
-    // implement your own code to turn your device on/off
-    this.exampleStates.On = value as boolean;
-
-    this.platform.log.debug('Set Characteristic On ->', value);
+  cToF(celsius: number): number {
+    return celsius * 9 / 5 + 32;
   }
 
-  /**
-   * Handle the "GET" requests from HomeKit
-   * These are sent when HomeKit wants to know the current state of the accessory, for example, checking if a Light bulb is on.
-   *
-   * GET requests should return as fast as possbile. A long delay here will result in
-   * HomeKit being unresponsive and a bad user experience in general.
-   *
-   * If your device takes time to respond you should update the status of your device
-   * asynchronously instead using the `updateCharacteristic` method instead.
-
-   * @example
-   * this.service.updateCharacteristic(this.platform.Characteristic.On, true)
-   */
-  async getOn(): Promise<CharacteristicValue> {
-    // implement your own code to check if the device is on
-    const isOn = this.exampleStates.On;
-
-    this.platform.log.debug('Get Characteristic On ->', isOn);
-
-    // if you need to return an error to show the device as "Not Responding" in the Home app:
-    // throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
-
-    return isOn;
+  fToC(fahrenheit: number): number {
+    return (fahrenheit - 32) * 5 / 9;
   }
 
-  /**
-   * Handle "SET" requests from HomeKit
-   * These are sent when the user changes the state of an accessory, for example, changing the Brightness
-   */
-  async setBrightness(value: CharacteristicValue) {
-    // implement your own code to set the brightness
-    this.exampleStates.Brightness = value as number;
-
-    this.platform.log.debug('Set Characteristic Brightness -> ', value);
+  handleCurrentHeatingCoolingStateGet() {
+    //this.logger.debug('Triggered GET CurrentHeatingCoolingState');
+    return this.tValueCurrentHeatingCoolingState;
   }
 
+  handleCurrentHeatingCoolingStateSet(value) {
+    this.logger.debug('Triggered SET CurrentHeatingCoolingState:' + value);
+  }
+
+  handleTargetHeatingCoolingStateGet() {
+    //this.logger.debug('Triggered GET TargetHeatingCoolingState');
+    return this.tValueTargetHeatingCoolingState;
+  }
+
+  handleTargetHeatingCoolingStateSet(value) {
+    this.logger.debug('Triggered SET TargetHeatingCoolingState:' + value);
+  }
+
+  handleCurrentTemperatureGet() {
+    //this.logger.debug('Triggered GET CurrentTemperature');
+
+    return this.tValueCurrentTemperature;
+  }
+
+  handleTargetTemperatureGet() {
+    //this.logger.debug('Triggered GET TargetTemperature');
+
+    return this.tValueTargetTemperature;
+  }
+
+  handleTargetTemperatureSet(value) {
+    this.logger.debug('Triggered SET TargetTemperature:' + value);
+
+    if (value === this.tValueTargetTemperature) {
+      return;
+    }
+    this.tValueTargetTemperature = value;
+    if (this.tValueDisplayUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
+
+      if (value < 7) {
+        return;
+      }
+      value = this.cToF(value);
+    }
+
+    this.tApi.setTemperature(value)
+      .then(async () => {
+        this.updateRealStates();
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        this.updateValues();
+      });
+  }
+
+  handleTemperatureDisplayUnitsGet() {
+    //this.logger.debug('Triggered GET TemperatureDisplayUnits');
+
+    // set this to a valid value for TemperatureDisplayUnits
+    return this.tValueDisplayUnit;
+  }
+
+  handleTemperatureDisplayUnitsSet(value) {
+    this.logger.debug('Triggered SET TemperatureDisplayUnits:' + value);
+  }
+
+  updateValues() {
+    this.logger.debug('Update Fenix TFT accessory', this.accessory.displayName);
+    this.tApi.getInformation().then((res) => {
+
+      const informationService = this.accessory.getService(this.platform.api.hap.Service.AccessoryInformation);
+      if (informationService) {
+        informationService
+          .setCharacteristic(this.platform.api.hap.Characteristic.Manufacturer, 'Fenix Trading s.r.o.')
+          .setCharacteristic(this.platform.api.hap.Characteristic.Model, 'Fenix TFT Wifi ' + res.data.Ty.value)
+          .setCharacteristic(this.platform.api.hap.Characteristic.SerialNumber, res.data.Sv.value);
+      }
+      let targetTemperature = res.data.Sp.value / res.data.Sp.divFactor;
+      let currentTemperature = res.data.At.value / res.data.At.divFactor;
+
+      if (this.tValueDisplayUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
+        targetTemperature = this.fToC(res.data.Sp.value / res.data.Sp.divFactor);
+        currentTemperature = this.fToC(res.data.At.value / res.data.At.divFactor);
+      }
+      if (res.data.Dm.value === 0) {
+        this.tValueCurrentHeatingCoolingState = this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
+        this.tValueTargetHeatingCoolingState = this.platform.Characteristic.TargetHeatingCoolingState.OFF;
+      }
+      this.tValueCurrentTemperature = currentTemperature;
+      if (targetTemperature >= 7) {
+        this.tValueTargetTemperature = targetTemperature;
+        this.tValueTargetHeatingCoolingState = this.platform.Characteristic.TargetHeatingCoolingState.HEAT;
+      } else {
+        this.tValueTargetTemperature = 0;
+        this.tValueTargetHeatingCoolingState = this.platform.Characteristic.TargetHeatingCoolingState.OFF;
+      }
+      if (targetTemperature > currentTemperature) {
+        this.tValueCurrentHeatingCoolingState = this.platform.Characteristic.CurrentHeatingCoolingState.HEAT;
+      } else {
+        this.tValueCurrentHeatingCoolingState = this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
+      }
+    });
+  }
+
+  updateRealStates() {
+    if (this.tValueTargetTemperature >= 7) {
+      this.tValueTargetHeatingCoolingState = this.platform.Characteristic.TargetHeatingCoolingState.HEAT;
+    } else {
+      this.tValueTargetHeatingCoolingState = this.platform.Characteristic.TargetHeatingCoolingState.OFF;
+    }
+    if (this.tValueTargetTemperature > this.tValueCurrentTemperature) {
+      this.tValueCurrentHeatingCoolingState = this.platform.Characteristic.CurrentHeatingCoolingState.HEAT;
+    } else {
+      this.tValueCurrentHeatingCoolingState = this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
+    }
+  }
 }

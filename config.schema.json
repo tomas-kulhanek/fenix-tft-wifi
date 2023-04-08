@@ -1,15 +1,34 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "FenixTFTWifi",
   "pluginType": "platform",
   "singular": true,
   "schema": {
     "type": "object",
     "properties": {
       "name": {
-        "title": "Name",
+        "type": "string",
+        "title": "Plugin Name",
+        "required": true,
+        "placeholder": "Fenix TFT Wifi",
+        "description": "Name to use for Homebridge logging purposes. Default: Fenix TFT Wifi."
+      },
+      "accessToken": {
+        "title": "Access token",
         "type": "string",
         "required": true,
-        "default": "Example Dynamic Platform"
+        "default": ""
+      },
+      "refreshToken": {
+        "title": "Refresh token",
+        "type": "string",
+        "required": true,
+        "default": ""
+      },
+      "temperatureCheckInterval": {
+        "title": "Temperature check interval in minutes",
+        "type": "number",
+        "required": true,
+        "default": "30"
       }
     }
   }
