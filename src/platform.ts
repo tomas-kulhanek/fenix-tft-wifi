@@ -52,7 +52,7 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
     await new Promise(resolve => setTimeout(resolve, 5000));
     const fenixApi = new FenixApi(tokenManager);
     fenixApi.readMyInformation().then((data) => {
-      const devices: { uuid: string, name: string }[] = [];
+      const devices: { uuid: string; name: string }[] = [];
       for (const home of data.data) {
         for (const room of home.rooms) {
           for (const sensor of room.sensors) {

@@ -8,13 +8,13 @@ export default class TokenManager {
   private readonly ttl = 60 * 60; // one hour
   private parsedJwt: {
     header: {
-      alg: string,
-      kid: string,
-      typ: string,
-      x5t: string,
-    },
+      alg: string;
+      kid: string;
+      typ: string;
+      x5t: string;
+    };
     payload: {
-      client_id: string,
+      client_id: string;
       nbf: number;
       exp: number;
       iss: string;
@@ -37,7 +37,7 @@ export default class TokenManager {
       dh: string;
       email: string;
       amr: string[];
-    },
+    };
   };
 
   private axiosClient: Axios;
