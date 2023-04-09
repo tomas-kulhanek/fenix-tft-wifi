@@ -16,7 +16,7 @@ export default class ThermostatData {
   }
 
   get currentHeatingCoolingState(): number {
-    if (this.mode === ThermostatMode.OFF || this.actualTemperature > this.requiredTemperature) {
+    if (this.mode === ThermostatMode.OFF || this.actualTemperature >= this.requiredTemperature) {
       return 0;
     }
     return 1;

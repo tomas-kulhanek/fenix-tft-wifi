@@ -9,12 +9,12 @@ export class FenixTFTThermostatPlatformAccessory {
   private name: string;
   private logger: Logger;
   private thermostatData: ThermostatData | undefined;
-  private tValueDisplayUnit = this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS;
 
   constructor(
     private readonly platform: FenixTFTWifiPlatform,
     private readonly accessory: PlatformAccessory,
     private readonly tApi: ThermostatApi,
+    private readonly temperatureUnit,
     private temperatureCheckInterval: number,
   ) {
     this.logger = platform.log;
@@ -57,14 +57,13 @@ export class FenixTFTThermostatPlatformAccessory {
       .onGet(this.handleTargetTemperatureGet.bind(this))
       .onSet(this.handleTargetTemperatureSet.bind(this))
       .setProps({
-        minValue: this.tValueDisplayUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 5 : 0,
-        maxValue: this.tValueDisplayUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 35 : 1000,
-        minStep: this.tValueDisplayUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 0.5 : 5,
+        minValue: this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 5 : 0,
+        maxValue: this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 35 : 1000,
+        minStep: this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 0.5 : 5,
       });
 
     this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
-      .onGet(this.handleTemperatureDisplayUnitsGet.bind(this))
-      .onSet(this.handleTemperatureDisplayUnitsSet.bind(this));
+      .onGet(this.handleTemperatureDisplayUnitsGet.bind(this));
 
     setInterval(() => this.updateValues(), this.temperatureCheckInterval);
   }
@@ -98,7 +97,7 @@ export class FenixTFTThermostatPlatformAccessory {
   handleCurrentTemperatureGet() {
     this.logger.debug('Triggered GET CurrentTemperature');
 
-    if (this.tValueDisplayUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
+    if (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
       if (!this.thermostatData?.actualTemperature) {
         return 0;
       }
@@ -110,7 +109,7 @@ export class FenixTFTThermostatPlatformAccessory {
 
   handleTargetTemperatureGet() {
     this.logger.debug('Triggered GET TargetTemperature');
-    if (this.tValueDisplayUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
+    if (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
       if (!this.thermostatData?.requiredTemperature) {
         return 0;
       }
@@ -123,7 +122,7 @@ export class FenixTFTThermostatPlatformAccessory {
   handleTargetTemperatureSet(value) {
     this.logger.debug('Triggered SET TargetTemperature:' + value);
 
-    if (this.tValueDisplayUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
+    if (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
       value = this.cToF(value);
     }
     if (this.thermostatData === undefined) {
@@ -141,12 +140,7 @@ export class FenixTFTThermostatPlatformAccessory {
 
   handleTemperatureDisplayUnitsGet() {
     this.logger.debug('Triggered GET TemperatureDisplayUnits');
-    return this.tValueDisplayUnit;
-  }
-
-  handleTemperatureDisplayUnitsSet(value) {
-    this.logger.debug('Triggered SET TemperatureDisplayUnits:' + value);
-    this.tValueDisplayUnit = value;
+    return this.temperatureUnit;
   }
 
   async updateValues() {

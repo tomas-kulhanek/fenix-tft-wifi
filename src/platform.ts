@@ -99,11 +99,18 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
       } catch (error) {
         this.log.error(`Error while unregistering accessories: ${error}`);
       }
-    }).catch(()=>this.log.error('Cannot to retrieve base data'));
+    }).catch(() => this.log.error('Cannot to retrieve base data'));
   }
 
   private getTemperatureCheckInterval(): number {
     return (this.config.temperatureCheckInterval || 30) * 60000;
+  }
+
+  private get temperatureUnit():number {
+    if (this.config.temperatureUnit === 1) {
+      return this.Characteristic.TemperatureDisplayUnits.FAHRENHEIT;
+    }
+    return this.Characteristic.TemperatureDisplayUnits.CELSIUS;
   }
 
   private createThermostat(accessory, tsApi: ThermostatApi): FenixTFTThermostatPlatformAccessory {
@@ -111,6 +118,7 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
       this,
       accessory,
       tsApi,
+      this.temperatureUnit,
       this.getTemperatureCheckInterval(),
     );
     thermostat.initialize();

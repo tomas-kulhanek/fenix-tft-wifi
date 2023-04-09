@@ -29,6 +29,26 @@
         "type": "number",
         "required": true,
         "default": "30"
+      },
+      "temperatureUnit": {
+        "type": "number",
+        "title": "Temperature units",
+        "default": 0,
+        "oneOf": [
+          {
+            "title": "Celsius",
+            "enum": [
+              0
+            ]
+          },
+          {
+            "title": "Fahrenheit",
+            "enum": [
+              1
+            ]
+          }
+        ],
+        "required": true
       }
     }
   }
