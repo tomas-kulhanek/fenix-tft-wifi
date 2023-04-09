@@ -1,4 +1,4 @@
-import {Formats, Logger, Perms, PlatformAccessory, Service} from 'homebridge';
+import {Logger, PlatformAccessory, Service} from 'homebridge';
 import {FenixTFTWifiPlatform} from './platform';
 import ThermostatApi from './Api/ThermostatApi';
 import ThermostatData from './DTO/ThermostatData';
