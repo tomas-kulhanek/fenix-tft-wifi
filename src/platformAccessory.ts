@@ -8,7 +8,7 @@ export class FenixTFTThermostatPlatformAccessory {
   private name: string;
   private logger: Logger;
   private tValueDisplayUnit = this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS;
-  private tValueTargetTemperature = 0;
+  private tValueTargetTemperature = 5;
   private tValueCurrentTemperature = 0;
   private tValueTargetHeatingCoolingState = this.platform.Characteristic.TargetHeatingCoolingState.OFF;
   private tValueCurrentHeatingCoolingState = this.platform.Characteristic.CurrentHeatingCoolingState.HEAT;
@@ -63,8 +63,8 @@ export class FenixTFTThermostatPlatformAccessory {
         .onGet(this.handleTargetTemperatureGet.bind(this))
         .onSet(this.handleTargetTemperatureSet.bind(this))
         .setProps({
-          minValue: 0,
-          maxValue: 27,
+          minValue: 5,
+          maxValue: 35,
           minStep: 0.5,
         }).setValue(this.tValueTargetTemperature);
     } else {
@@ -184,7 +184,7 @@ export class FenixTFTThermostatPlatformAccessory {
         this.tValueTargetTemperature = targetTemperature;
         this.tValueTargetHeatingCoolingState = this.platform.Characteristic.TargetHeatingCoolingState.HEAT;
       } else {
-        this.tValueTargetTemperature = 0;
+        this.tValueTargetTemperature = 5;
         this.tValueTargetHeatingCoolingState = this.platform.Characteristic.TargetHeatingCoolingState.OFF;
       }
       if (targetTemperature > currentTemperature) {
