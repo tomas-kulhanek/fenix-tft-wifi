@@ -6,10 +6,10 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tomas-kulhanek/fenix-tft-wifi.git"
+    "url": "https://github.com/tomas-kulhanek/homebridge-fenix-tft-wifi.git"
   },
   "bugs": {
-    "url": "https://github.com/tomas-kulhanek/fenix-tft-wifi/issues"
+    "url": "https://github.com/tomas-kulhanek/homebridge-fenix-tft-wifi/issues"
   },
   "engines": {
     "node": ">=14.18.1",

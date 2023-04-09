@@ -19,7 +19,7 @@ export default class FenixApi {
 
   readMyInformation() {
     return this.axiosClient.get(this.ApiUrl + '/businessmodule/v1/installations/admins/' + this.tokenManager.sub, {
-      headers: {Authorization: 'Bearer ' + this.tokenManager.accessToken}
+      headers: {Authorization: 'Bearer ' + this.tokenManager.accessToken},
     });
   }
 }

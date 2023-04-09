@@ -99,7 +99,7 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
       } catch (error) {
         this.log.error(`Error while unregistering accessories: ${error}`);
       }
-    });
+    }).catch(()=>this.log.error('Cannot to retrieve base data'));
   }
 
   private getTemperatureCheckInterval(): number {

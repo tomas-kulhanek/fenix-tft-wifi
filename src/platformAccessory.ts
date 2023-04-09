@@ -143,7 +143,7 @@ export class FenixTFTThermostatPlatformAccessory {
         this.updateRealStates();
         await new Promise(resolve => setTimeout(resolve, 5000));
         this.updateValues();
-      });
+      }).catch(() => this.logger.error('Cannot to set temperature for thermostat ' + this.accessory.displayName));
   }
 
   handleTemperatureDisplayUnitsGet() {
@@ -192,7 +192,7 @@ export class FenixTFTThermostatPlatformAccessory {
       } else {
         this.tValueCurrentHeatingCoolingState = this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
       }
-    });
+    }).catch(() => this.logger.error('Cannot to retrieve data for thermostat ' + this.accessory.displayName));
   }
 
   updateRealStates() {
