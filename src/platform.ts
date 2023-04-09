@@ -107,11 +107,13 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
   }
 
   private createThermostat(accessory, tsApi: ThermostatApi): FenixTFTThermostatPlatformAccessory {
-    return new FenixTFTThermostatPlatformAccessory(
+    const thermostat = new FenixTFTThermostatPlatformAccessory(
       this,
       accessory,
       tsApi,
       this.getTemperatureCheckInterval(),
     );
+    thermostat.initialize();
+    return thermostat;
   }
 }
