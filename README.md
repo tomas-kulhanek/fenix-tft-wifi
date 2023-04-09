@@ -13,6 +13,43 @@
 
 ## Homebridge Platform Plugin Fenix TFT WiFi
 
-TBD
+
+This [homebridge](https://github.com/homebridge/homebridge) plugin allows you to control the Fenix TFT WiFi thermostats in your Apple Home App (HomeKit).
+
+## Features
+- Setting the target temperature for each thermostat
+- Monitor the current temperature
+- Turn the thermostat off and on
+
+
+## Instructions
+
+1. Install the plugin as `root` (`sudo su -`) with `npm install -g homebridge-fenix-tft-wifi@latest --unsafe-perm`.
+2. Customize you homebridge configuration `config.json`.
+3. Restart homebridge, ggf. `service homebridge restart`.
+
+- Example `config.json` with one vacuum and room cleaning:
+
+```
+   "platforms": [
+        {
+            "accessToken": "JWT TOKEN from Fenix servers",
+            "refreshToken": "Refresh token from Fenix servers",
+            "temperatureCheckInterval": 30,
+            "platform": "FenixTFTWifi"
+        }
+    ],
+```
+
+Or you can use Homebridge UI
+
+## Fenix Tokens
+You must use some proxy like [Proxyman](https://proxyman.io/) on your mobile and catch traffic on host `https://vs2-fe-identity-prod.azurewebsites.net/`.
+- Set Proxyman to catch all traffic
+- Enable SSL Proxying for domain `https://vs2-fe-identity-prod.azurewebsites.net/`
+- Open [FENIX TFT Wifi](https://apps.apple.com/gb/app/fenix-tft-wifi/id1474206689) application on your mobile
+- Log in using your credentials
+- Open Proxyman and check POST request on `https://vs2-fe-identity-prod.azurewebsites.net/connect/token`
+- Response on this request contain `access_token` and `refresh_token`
 
 
