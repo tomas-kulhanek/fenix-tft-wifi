@@ -1,7 +1,7 @@
 {
   "displayName": "Fenix TFT Wifi thermostats",
   "name": "homebridge-fenix-tft-wifi",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Homebridge plugin which adds a Fenix TFT WiFi thermostat as HomeKit device.",
   "license": "Apache-2.0",
   "repository": {
