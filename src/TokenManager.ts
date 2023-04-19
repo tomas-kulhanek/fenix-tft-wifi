@@ -53,7 +53,7 @@ export default class TokenManager {
     try {
       this.parsedJwt = decode(this.token);
     } catch (error) {
-      this.logger.error(`JWT Token is not valid! ${error}`)
+      this.logger.error(`JWT Token is not valid! ${error}`);
     }
     setInterval(() => {
       if (this.isJwtTokenNearToExpireExpired()) {
