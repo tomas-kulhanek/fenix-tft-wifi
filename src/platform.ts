@@ -63,6 +63,8 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
 
       const activeUUIDs: Array<string> = [];
       const toRegister: Array<PlatformAccessory> = [];
+      const toUpdate: Array<PlatformAccessory> = [];
+      const toUnregister: Array<PlatformAccessory> = [];
 
       for (const device of devices) {
         const uuid = this.api.hap.uuid.generate(device.uuid);
@@ -75,7 +77,7 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
           this.log.info('Restoring existing Fenix TFT thermostat from cache:', existingAccessory.displayName);
           existingAccessory.context.device = device;
           this.createThermostat(existingAccessory, tsApi);
-          this.api.updatePlatformAccessories([existingAccessory]);
+          toUpdate.push(existingAccessory);
           continue;
         }
 
@@ -86,7 +88,6 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
         toRegister.push(accessory);
       }
 
-      const toUnregister: Array<PlatformAccessory> = [];
       for (const accessory of this.accessories) {
         if (!activeUUIDs.includes(accessory.UUID)) {
           this.log.debug('Removing unused Fenix TFT thermostat accessory with UUID', accessory.UUID);
@@ -99,14 +100,20 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
       } catch (error) {
         this.log.error(`Error while unregistering accessories: ${error}`);
       }
+      try {
+        this.api.updatePlatformAccessories(toUpdate);
+      } catch (error) {
+        this.log.error(`Error while unregistering accessories: ${error}`);
+      }
     }).catch(() => this.log.error('Cannot to retrieve base data'));
   }
 
   private getTemperatureCheckInterval(): number {
+    this.log.debug('Thermostat check interval is ' + (this.config.temperatureCheckInterval || 30) + ' minutes');
     return (this.config.temperatureCheckInterval || 30) * 60000;
   }
 
-  private get temperatureUnit():number {
+  private get temperatureUnit(): number {
     if (this.config.temperatureUnit === 1) {
       return this.Characteristic.TemperatureDisplayUnits.FAHRENHEIT;
     }
