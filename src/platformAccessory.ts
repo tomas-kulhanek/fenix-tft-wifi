@@ -2,7 +2,7 @@ import {Logger, PlatformAccessory, Service} from 'homebridge';
 import {FenixTFTWifiPlatform} from './platform';
 import ThermostatApi from './Api/ThermostatApi';
 import ThermostatData from './DTO/ThermostatData';
-import {ThermostatMode} from "./Enum/ThermostatMode";
+import {ThermostatMode} from './Enum/ThermostatMode';
 
 export class FenixTFTThermostatPlatformAccessory {
 
