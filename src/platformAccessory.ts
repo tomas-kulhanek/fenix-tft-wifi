@@ -56,6 +56,10 @@ export class FenixTFTThermostatPlatformAccessory {
     this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
       .onGet(this.handleCurrentTemperatureGet.bind(this));
 
+    this.debug(
+      'Setting unit ' +
+      (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 'Celsius' : 'Fahrenheit'),
+    );
     this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature)
       .onGet(this.handleTargetTemperatureGet.bind(this))
       .onSet(this.handleTargetTemperatureSet.bind(this))
@@ -72,10 +76,12 @@ export class FenixTFTThermostatPlatformAccessory {
   }
 
   cToF(celsius: number): number {
+    this.debug('Converting ' + celsius + ' to Fahrenheit');
     return celsius * 9 / 5 + 32;
   }
 
   fToC(fahrenheit: number): number {
+    this.debug('Converting ' + fahrenheit + ' to Celsius');
     return (fahrenheit - 32) * 5 / 9;
   }
 
@@ -90,37 +96,46 @@ export class FenixTFTThermostatPlatformAccessory {
 
   handleTargetHeatingCoolingStateGet() {
     this.logger.debug('Triggered GET TargetHeatingCoolingState');
-    return this.thermostatData?.targetHeatingCoolingState ?? this.platform.Characteristic.TargetHeatingCoolingState.OFF;
+    const temp = this.thermostatData?.targetHeatingCoolingState ?? this.platform.Characteristic.TargetHeatingCoolingState.OFF;
+    this.debug('Temperature ' + temp);
+    return temp;
   }
 
   handleTargetHeatingCoolingStateSet(value) {
     this.logger.info('Triggered SET TargetHeatingCoolingState:' + value);
     if (!this.thermostatData) {
+      this.warning('Thermostat data was not found');
       return;
     }
     if (value === this.platform.Characteristic.TargetHeatingCoolingState.COOL) {
       this.thermostatData.mode = ThermostatMode.ANTIFREEZE;
+      this.debug('Setting Antifreeze mode');
       this.tApi.changeMode(ThermostatMode.ANTIFREEZE)
+        .then(() => this.info('Antifreeze mode was set'))
         .catch(() => this.logger.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
       return;
     }
     if (value === this.platform.Characteristic.TargetHeatingCoolingState.AUTO) {
       this.thermostatData.mode = ThermostatMode.AUTO;
+      this.debug('Setting Auto mode');
       this.tApi.changeMode(ThermostatMode.AUTO)
+        .then(() => this.info('Auto mode was set'))
         .catch(() => this.logger.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
       return;
     }
     if (value === this.platform.Characteristic.TargetHeatingCoolingState.OFF) {
       this.thermostatData.mode = ThermostatMode.OFF;
-      this.logger.error('Nastavuji vypnuto');
+      this.debug('Setting Off mode');
       this.tApi.changeMode(ThermostatMode.OFF)
+        .then(() => this.info('Off mode was set'))
         .catch(() => this.logger.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
       return;
     }
     if (value === this.platform.Characteristic.TargetHeatingCoolingState.HEAT) {
       this.thermostatData.mode = ThermostatMode.MANUAL;
-      this.logger.error('Nastavuji manual');
+      this.debug('Setting Manual mode');
       this.tApi.setTemperature(this.thermostatData)
+        .then(() => this.info('Manual mode was set'))
         .catch(() => this.logger.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
       return;
     }
@@ -133,10 +148,14 @@ export class FenixTFTThermostatPlatformAccessory {
       if (!this.thermostatData?.actualTemperature) {
         return 0;
       }
-      return this.fToC(this.thermostatData?.actualTemperature);
+      const temp = this.fToC(this.thermostatData?.actualTemperature);
+      this.info('Current temperature ' + temp);
+      return temp;
     }
 
-    return this.thermostatData?.actualTemperature ?? 0;
+    const temp = this.thermostatData?.actualTemperature ?? 0;
+    this.info('Current temperature ' + temp);
+    return temp;
   }
 
   handleTargetTemperatureGet() {
@@ -145,10 +164,15 @@ export class FenixTFTThermostatPlatformAccessory {
       if (!this.thermostatData?.requiredTemperature) {
         return 0;
       }
-      return this.fToC(this.thermostatData?.requiredTemperature);
+
+      const temp = this.fToC(this.thermostatData?.requiredTemperature);
+      this.info('Target temperature ' + temp);
+      return temp;
     }
 
-    return this.thermostatData?.requiredTemperature ?? 0;
+    const temp = this.thermostatData?.requiredTemperature ?? 0;
+    this.info('Target temperature ' + temp);
+    return temp;
   }
 
   handleTargetTemperatureSet(value) {
@@ -158,15 +182,18 @@ export class FenixTFTThermostatPlatformAccessory {
       value = this.cToF(value);
     }
     if (this.thermostatData === undefined) {
+      this.error('Thermostat data was not found');
       return;
     }
 
     if (value === this.thermostatData.requiredTemperature) {
+      this.info('Temperature is same as actually required');
       return;
     }
     this.thermostatData.requiredTemperature = value;
 
     this.tApi.setTemperature(this.thermostatData)
+      .then(() => this.info('Temperature was set'))
       .catch(() => this.logger.error('Cannot to set temperature for thermostat ' + this.accessory.displayName));
   }
 
@@ -186,5 +213,21 @@ export class FenixTFTThermostatPlatformAccessory {
         .setCharacteristic(this.platform.api.hap.Characteristic.Model, 'Fenix TFT Wifi ' + this.thermostatData.model)
         .setCharacteristic(this.platform.api.hap.Characteristic.SerialNumber, this.thermostatData.softwareVersion);
     }
+  }
+
+  debug(message: string) {
+    this.logger.debug(this.accessory.displayName + ': ' + message);
+  }
+
+  info(message: string) {
+    this.logger.info(this.accessory.displayName + ': ' + message);
+  }
+
+  warning(message: string) {
+    this.logger.warn(this.accessory.displayName + ': ' + message);
+  }
+
+  error(message: string) {
+    this.logger.error(this.accessory.displayName + ': ' + message);
   }
 }
