@@ -26,7 +26,7 @@ export class FenixTFTThermostatPlatformAccessory {
   }
 
   async initialize() {
-    this.logger.debug('Initializing Fenix TFT accessory', this.accessory.displayName);
+    this.debug('Initializing Fenix TFT accessory');
 
     this.accessory.getService(this.platform.api.hap.Service.AccessoryInformation);
     await this.updateValues();
@@ -86,97 +86,90 @@ export class FenixTFTThermostatPlatformAccessory {
   }
 
   handleCurrentHeatingCoolingStateGet() {
-    this.logger.debug('Triggered GET CurrentHeatingCoolingState');
+    this.debug('Triggered GET CurrentHeatingCoolingState');
     return this.thermostatData?.currentHeatingCoolingState ?? this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
   }
 
   handleCurrentHeatingCoolingStateSet(value) {
-    this.logger.debug('Triggered SET CurrentHeatingCoolingState:' + value);
+    this.info('Triggered SET CurrentHeatingCoolingState:' + value);
   }
 
   handleTargetHeatingCoolingStateGet() {
-    this.logger.debug('Triggered GET TargetHeatingCoolingState');
+    this.debug('Triggered GET TargetHeatingCoolingState');
     const temp = this.thermostatData?.targetHeatingCoolingState ?? this.platform.Characteristic.TargetHeatingCoolingState.OFF;
     this.debug('Temperature ' + temp);
     return temp;
   }
 
   handleTargetHeatingCoolingStateSet(value) {
-    this.logger.info('Triggered SET TargetHeatingCoolingState:' + value);
+    this.info('Triggered SET TargetHeatingCoolingState:' + value);
     if (!this.thermostatData) {
       this.warning('Thermostat data was not found');
       return;
     }
-    if (value === this.platform.Characteristic.TargetHeatingCoolingState.COOL) {
-      this.thermostatData.mode = ThermostatMode.ANTIFREEZE;
-      this.debug('Setting Antifreeze mode');
-      this.tApi.changeMode(ThermostatMode.ANTIFREEZE)
-        .then(() => this.info('Antifreeze mode was set'))
-        .catch(() => this.logger.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
-      return;
+    switch (value) {
+      case this.platform.Characteristic.TargetHeatingCoolingState.COOL:
+        this.thermostatData.mode = ThermostatMode.ANTIFREEZE;
+        this.debug('Setting Antifreeze mode');
+        break;
+      case this.platform.Characteristic.TargetHeatingCoolingState.AUTO:
+        this.thermostatData.mode = ThermostatMode.AUTO;
+        this.debug('Setting Auto mode');
+        break;
+      case this.platform.Characteristic.TargetHeatingCoolingState.OFF:
+        this.thermostatData.mode = ThermostatMode.OFF;
+        this.debug('Setting Off mode');
+        break;
+      default:
+        this.thermostatData.mode = ThermostatMode.MANUAL;
+        this.debug('Setting Manual mode');
+        this.tApi.setTemperature(this.thermostatData)
+          .then(() => this.info('Manual mode was set'))
+          .catch(() => this.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
+        return;
     }
-    if (value === this.platform.Characteristic.TargetHeatingCoolingState.AUTO) {
-      this.thermostatData.mode = ThermostatMode.AUTO;
-      this.debug('Setting Auto mode');
-      this.tApi.changeMode(ThermostatMode.AUTO)
-        .then(() => this.info('Auto mode was set'))
-        .catch(() => this.logger.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
-      return;
-    }
-    if (value === this.platform.Characteristic.TargetHeatingCoolingState.OFF) {
-      this.thermostatData.mode = ThermostatMode.OFF;
-      this.debug('Setting Off mode');
-      this.tApi.changeMode(ThermostatMode.OFF)
-        .then(() => this.info('Off mode was set'))
-        .catch(() => this.logger.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
-      return;
-    }
-    if (value === this.platform.Characteristic.TargetHeatingCoolingState.HEAT) {
-      this.thermostatData.mode = ThermostatMode.MANUAL;
-      this.debug('Setting Manual mode');
-      this.tApi.setTemperature(this.thermostatData)
-        .then(() => this.info('Manual mode was set'))
-        .catch(() => this.logger.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
-      return;
-    }
+
+    this.tApi.changeMode(this.thermostatData.mode)
+      .then(() => this.info('Mode was set'))
+      .catch(() => this.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
   }
 
   handleCurrentTemperatureGet() {
-    this.logger.debug('Triggered GET CurrentTemperature');
+    this.debug('Triggered GET CurrentTemperature');
 
     if (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
       if (!this.thermostatData?.actualTemperature) {
         return 0;
       }
       const temp = this.fToC(this.thermostatData?.actualTemperature);
-      this.info('Current temperature ' + temp);
+      this.debug('Current temperature ' + temp);
       return temp;
     }
 
     const temp = this.thermostatData?.actualTemperature ?? 0;
-    this.info('Current temperature ' + temp);
+    this.debug('Current temperature ' + temp);
     return temp;
   }
 
   handleTargetTemperatureGet() {
-    this.logger.debug('Triggered GET TargetTemperature');
+    this.debug('Triggered GET TargetTemperature');
     if (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
       if (!this.thermostatData?.requiredTemperature) {
         return 0;
       }
 
       const temp = this.fToC(this.thermostatData?.requiredTemperature);
-      this.info('Target temperature ' + temp);
+      this.debug('Target temperature ' + temp);
       return temp;
     }
 
     const temp = this.thermostatData?.requiredTemperature ?? 0;
-    this.info('Target temperature ' + temp);
+    this.debug('Target temperature ' + temp);
     return temp;
   }
 
   handleTargetTemperatureSet(value) {
-    this.logger.debug('Triggered SET TargetTemperature:' + value);
+    this.info('Triggered SET TargetTemperature:' + value);
 
     if (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
       value = this.cToF(value);
@@ -187,23 +180,23 @@ export class FenixTFTThermostatPlatformAccessory {
     }
 
     if (value === this.thermostatData.requiredTemperature) {
-      this.info('Temperature is same as actually required');
+      this.debug('Temperature is same as actually required');
       return;
     }
     this.thermostatData.requiredTemperature = value;
 
     this.tApi.setTemperature(this.thermostatData)
       .then(() => this.info('Temperature was set'))
-      .catch(() => this.logger.error('Cannot to set temperature for thermostat ' + this.accessory.displayName));
+      .catch(() => this.error('Cannot to set temperature for thermostat ' + this.accessory.displayName));
   }
 
   handleTemperatureDisplayUnitsGet() {
-    this.logger.debug('Triggered GET TemperatureDisplayUnits');
+    this.debug('Triggered GET TemperatureDisplayUnits');
     return this.temperatureUnit;
   }
 
   async updateValues() {
-    this.logger.debug('Update Fenix TFT accessory', this.accessory.displayName);
+    this.debug('Update Fenix TFT accessory');
     this.thermostatData = await this.tApi.getInformation();
 
     const informationService = this.accessory.getService(this.platform.api.hap.Service.AccessoryInformation);
@@ -216,18 +209,18 @@ export class FenixTFTThermostatPlatformAccessory {
   }
 
   debug(message: string) {
-    this.logger.debug(this.accessory.displayName + ': ' + message);
+    this.logger.debug('[' + this.accessory.UUID + '] [' + this.accessory.displayName + ']: ' + message);
   }
 
   info(message: string) {
-    this.logger.info(this.accessory.displayName + ': ' + message);
+    this.logger.info('[' + this.accessory.UUID + '] [' + this.accessory.displayName + ']: ' + message);
   }
 
   warning(message: string) {
-    this.logger.warn(this.accessory.displayName + ': ' + message);
+    this.logger.warn('[' + this.accessory.UUID + '] [' + this.accessory.displayName + ']: ' + message);
   }
 
   error(message: string) {
-    this.logger.error(this.accessory.displayName + ': ' + message);
+    this.logger.error('[' + this.accessory.UUID + '] [' + this.accessory.displayName + ']: ' + message);
   }
 }
