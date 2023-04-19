@@ -74,14 +74,20 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
 
         const tsApi = new ThermostatApi(device.uuid, tokenManager);
         if (existingAccessory) {
-          this.log.info('Restoring existing Fenix TFT thermostat from cache:', existingAccessory.displayName);
+          this.log.info(
+            '[' + device.uuid + '] [' + existingAccessory.displayName
+            + ']: Restoring existing Fenix TFT thermostat from cache:',
+          );
           existingAccessory.context.device = device;
           this.createThermostat(existingAccessory, tsApi);
           toUpdate.push(existingAccessory);
           continue;
         }
 
-        this.log.info('Adding new Fenix TFT thermostat:', device.name);
+        this.log.info(
+          '[' + device.uuid + '] [' + device.name
+          + ']: Adding new Fenix TFT thermostat:',
+        );
         const accessory = new this.api.platformAccessory(device.name, uuid);
         accessory.context.device = device;
         this.createThermostat(accessory, tsApi);
@@ -90,7 +96,10 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
 
       for (const accessory of this.accessories) {
         if (!activeUUIDs.includes(accessory.UUID)) {
-          this.log.debug('Removing unused Fenix TFT thermostat accessory with UUID', accessory.UUID);
+          this.log.debug(
+            '[' + accessory.UUID + '] [' + accessory.displayName
+            + ']: Removing unused Fenix TFT thermostat accessory',
+          );
           toUnregister.push(accessory);
         }
       }
@@ -103,9 +112,9 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
       try {
         this.api.updatePlatformAccessories(toUpdate);
       } catch (error) {
-        this.log.error(`Error while unregistering accessories: ${error}`);
+        this.log.error(`Error while updating accessories: ${error}`);
       }
-    }).catch(() => this.log.error('Cannot to retrieve base data'));
+    }).catch(() => this.log.error('Cannot to retrieve base data. Do you have valid token?'));
   }
 
   private getTemperatureCheckInterval(): number {

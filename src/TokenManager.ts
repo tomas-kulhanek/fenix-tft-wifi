@@ -2,7 +2,6 @@ import {decode} from 'jwt-check-expiry';
 import {API, Logger} from 'homebridge';
 import axios, {Axios} from 'axios';
 import fsExtra from 'fs-extra';
-import {PLATFORM_NAME} from './settings';
 
 export default class TokenManager {
   private readonly ttl = 60 * 60; // one hour
@@ -38,7 +37,7 @@ export default class TokenManager {
       email: string;
       amr: string[];
     };
-  };
+  } | undefined;
 
   private axiosClient: Axios;
 
@@ -49,8 +48,13 @@ export default class TokenManager {
     private readonly hbApi: API,
   ) {
     this.axiosClient = axios.create();
-    this.parsedJwt = decode(this.token);
+    this.loadTokensFromCustomConfig().then(() => this.logger.debug('Check tokens from custom config'));
     this.refreshTokens();
+    try {
+      this.parsedJwt = decode(this.token);
+    } catch (error) {
+      this.logger.error(`JWT Token is not valid! ${error}`)
+    }
     setInterval(() => {
       if (this.isJwtTokenNearToExpireExpired()) {
         this.refreshTokens();
@@ -62,20 +66,23 @@ export default class TokenManager {
     const currentDate = new Date();
     currentDate.setTime(currentDate.getTime() + (this.ttl * 1000));
     const currentTime = currentDate.getTime() / 1000;
-    return currentTime > this.parsedJwt.payload.exp;
+    return currentTime > (this.parsedJwt?.payload?.exp ?? 0);
   }
 
   isJwtTokenExpired() {
     const currentTime = new Date().getTime() / 1000;
-    return currentTime > this.parsedJwt.payload.exp;
+    return currentTime > (this.parsedJwt?.payload?.exp ?? 0);
   }
 
   get sub(): string {
-    return this.parsedJwt.payload.sub;
+    return this.parsedJwt?.payload?.sub ?? '';
   }
 
   private refreshTokens() {
     if (!this.isJwtTokenNearToExpireExpired()) {
+      return;
+    }
+    if (!this.parsedJwt?.payload?.client_id) {
       return;
     }
 
@@ -91,25 +98,47 @@ export default class TokenManager {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           Authorization: 'Basic ' + this.token,
+
         },
       }).then(async (response) => {
       this.logger.info('Tokens are refreshed');
-      this.token = response.data.access_token;
-      this.refreshToken = response.data.refresh_token;
-      this.parsedJwt = decode(this.token);
-
-      const config = await fsExtra.readJson(this.hbApi.user.configPath());
-      config.platforms.forEach((platform) => {
-        if (platform.platform === PLATFORM_NAME) {
-          platform.accessToken = this.token;
-          platform.refreshToken = this.refreshToken;
-        }
-      });
-      await fsExtra.writeJsonSync(this.hbApi.user.configPath(), config);
+      await fsExtra.writeJsonSync(
+        this.customConfigPath,
+        {accessToken: response.data.access_token, refreshToken: response.data.refresh_token},
+      );
+      await this.loadTokensFromCustomConfig();
     }).catch(() => this.logger.error('Token is not possible to refresh'));
   }
 
   public get accessToken(): string {
     return this.token;
+  }
+
+  private get customConfigPath(): string {
+    return this.hbApi.user.storagePath() + '/.fenixTftWifi.config.json';
+  }
+
+  private async loadTokensFromCustomConfig() {
+    if (!await this.isCustomConfigExists()) {
+      this.logger.debug('Creating custom config');
+      await fsExtra.writeJsonSync(
+        this.customConfigPath,
+        {accessToken: this.token, refreshToken: this.refreshToken},
+      );
+    }
+    this.logger.debug('Loading tokens from custom config');
+
+    const config = await fsExtra.readJson(this.customConfigPath);
+    this.token = config.accessToken;
+    this.refreshToken = config.refreshToken;
+    try {
+      this.parsedJwt = decode(this.token);
+    } catch (error) {
+      this.logger.error(`JWT Token is not valid! ${error}`);
+    }
+  }
+
+  private isCustomConfigExists(): Promise<boolean> {
+    return fsExtra.pathExists(this.customConfigPath);
   }
 }
