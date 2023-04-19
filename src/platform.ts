@@ -74,8 +74,8 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
         if (existingAccessory) {
           this.log.info('Restoring existing Fenix TFT thermostat from cache:', existingAccessory.displayName);
           existingAccessory.context.device = device;
-          this.api.updatePlatformAccessories([existingAccessory]);
           this.createThermostat(existingAccessory, tsApi);
+          this.api.updatePlatformAccessories([existingAccessory]);
           continue;
         }
 

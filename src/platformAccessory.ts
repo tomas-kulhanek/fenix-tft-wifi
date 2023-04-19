@@ -2,6 +2,7 @@ import {Logger, PlatformAccessory, Service} from 'homebridge';
 import {FenixTFTWifiPlatform} from './platform';
 import ThermostatApi from './Api/ThermostatApi';
 import ThermostatData from './DTO/ThermostatData';
+import {ThermostatMode} from './Enum/ThermostatMode';
 
 export class FenixTFTThermostatPlatformAccessory {
 
@@ -47,6 +48,8 @@ export class FenixTFTThermostatPlatformAccessory {
         validValues: [
           this.platform.Characteristic.TargetHeatingCoolingState.OFF,
           this.platform.Characteristic.TargetHeatingCoolingState.HEAT,
+          this.platform.Characteristic.TargetHeatingCoolingState.COOL,
+          this.platform.Characteristic.TargetHeatingCoolingState.AUTO,
         ],
       });
 
@@ -91,7 +94,36 @@ export class FenixTFTThermostatPlatformAccessory {
   }
 
   handleTargetHeatingCoolingStateSet(value) {
-    this.logger.debug('Triggered SET TargetHeatingCoolingState:' + value);
+    this.logger.info('Triggered SET TargetHeatingCoolingState:' + value);
+    if (!this.thermostatData) {
+      return;
+    }
+    if (value === this.platform.Characteristic.TargetHeatingCoolingState.COOL) {
+      this.thermostatData.mode = ThermostatMode.ANTIFREEZE;
+      this.tApi.changeMode(ThermostatMode.ANTIFREEZE)
+        .catch(() => this.logger.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
+      return;
+    }
+    if (value === this.platform.Characteristic.TargetHeatingCoolingState.AUTO) {
+      this.thermostatData.mode = ThermostatMode.AUTO;
+      this.tApi.changeMode(ThermostatMode.AUTO)
+        .catch(() => this.logger.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
+      return;
+    }
+    if (value === this.platform.Characteristic.TargetHeatingCoolingState.OFF) {
+      this.thermostatData.mode = ThermostatMode.OFF;
+      this.logger.error('Nastavuji vypnuto');
+      this.tApi.changeMode(ThermostatMode.OFF)
+        .catch(() => this.logger.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
+      return;
+    }
+    if (value === this.platform.Characteristic.TargetHeatingCoolingState.HEAT) {
+      this.thermostatData.mode = ThermostatMode.MANUAL;
+      this.logger.error('Nastavuji manual');
+      this.tApi.setTemperature(this.thermostatData)
+        .catch(() => this.logger.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
+      return;
+    }
   }
 
   handleCurrentTemperatureGet() {

@@ -12,6 +12,13 @@ export default class ThermostatData {
     if (this.mode === ThermostatMode.OFF) {
       return 0;
     }
+    if (this.mode === ThermostatMode.ANTIFREEZE) {
+      return 2;
+    }
+    if (this.mode === ThermostatMode.AUTO) {
+      return 3;
+    }
+
     return 1;
   }
 
