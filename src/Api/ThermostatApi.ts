@@ -40,7 +40,7 @@ export default class ThermostatApi {
         {
           'timestamp': null,
           'wattsType': 'Dm',
-          'wattsTypeValue': mode.toString(),
+          'wattsTypeValue': mode,
         }
       ],
     }, {
