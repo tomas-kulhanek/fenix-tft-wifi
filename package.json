@@ -4,6 +4,7 @@
   "version": "2.1.0",
   "description": "Homebridge plugin which adds a Fenix TFT WiFi thermostat as HomeKit device.",
   "license": "Apache-2.0",
+  "author": "Tomas Kulhanek <jsem@tomaskulhanek.cz>",
   "repository": {
     "type": "git",
     "url": "https://github.com/tomas-kulhanek/homebridge-fenix-tft-wifi.git"

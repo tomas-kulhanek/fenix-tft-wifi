@@ -230,6 +230,6 @@ export class FenixTFTThermostatPlatformAccessory {
   }
 
   private get baseLogMessage(): string {
-    return '[' + this.accessory.UUID + '] [' + this.accessory.context.device.uuid + '] [' + this.accessory.displayName + ']: ';
+    return '[' + this.accessory.context.device.uuid + '] [' + this.accessory.displayName + ']: ';
   }
 }
