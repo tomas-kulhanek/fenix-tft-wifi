@@ -24,11 +24,14 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
-    this.log.debug('Finished initializing platform:', this.config.name);
+    this.log.debug('Finished initializing platform');
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
-      this.initAccessories()
-        .catch(() => this.log.error('Initialize of plugin was failed'));
+      try {
+        this.initAccessories().then(() => this.log.info('Initialized')).catch(() => this.log.error('Initialize of plugin was failed'));
+      } catch (error) {
+        this.log.error('Initialize of plugin was failed');
+      }
     });
   }
 

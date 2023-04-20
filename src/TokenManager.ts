@@ -1,4 +1,4 @@
-import {decode} from 'jwt-check-expiry';
+import isJwtTokenExpired, {decode} from 'jwt-check-expiry';
 import {API, Logger} from 'homebridge';
 import axios, {Axios} from 'axios';
 import fsExtra from 'fs-extra';
@@ -84,9 +84,11 @@ export default class TokenManager {
 
   private refreshTokens() {
     if (!this.isJwtTokenNearToExpireExpired()) {
+      this.logger.debug('Token is not expired.');
       return;
     }
     if (!this.parsedJwt?.payload?.client_id) {
+      this.logger.error('The token does not contain a client_id. '+ this.newTokenHint);
       return;
     }
 
@@ -127,6 +129,9 @@ export default class TokenManager {
   private async loadTokensFromCustomConfig() {
     if (!await this.isCustomConfigExists()) {
       this.logger.debug('Creating custom config');
+      if (this.isJwtTokenExpired()) {
+        throw new Error('JWT token is invalid. ' + this.newTokenHint);
+      }
       await fsExtra.writeJsonSync(
         this.customConfigPath,
         {accessToken: this.token, refreshToken: this.refreshToken},
@@ -134,20 +139,31 @@ export default class TokenManager {
     }
     this.logger.debug('Loading tokens from custom config');
 
-    fsExtra.readJson(this.customConfigPath)
-      .then((config) => {
-        this.token = config.accessToken;
-        this.refreshToken = config.refreshToken;
-        try {
-          this.parsedJwt = decode(this.token);
-        } catch (error) {
-          this.logger.error(`JWT Token is not valid! ${error}`);
-          throw error;
-        }
-      });
+    const config = await fsExtra.readJson(this.customConfigPath);
+    if (isJwtTokenExpired(config.accessToken) && !this.isJwtTokenExpired()) {
+      this.logger.info('Removing custom config, because contain expired token');
+      await fsExtra.remove(this.customConfigPath);
+      return;
+    }
+    this.token = config.accessToken;
+    this.refreshToken = config.refreshToken;
+    if (this.isJwtTokenExpired()) {
+      throw new Error('JWT token is invalid. ' + this.newTokenHint);
+    }
+    try {
+      this.parsedJwt = decode(this.token);
+    } catch (error) {
+      await fsExtra.remove(this.customConfigPath);
+      throw new Error('JWT token is invalid. ' + this.newTokenHint);
+    }
   }
 
   private isCustomConfigExists(): Promise<boolean> {
     return fsExtra.pathExists(this.customConfigPath);
+  }
+
+  private get newTokenHint():string{
+    return 'Please get a new token according to the documentation'
+    + 'https://github.com/tomas-kulhanek/homebridge-fenix-tft-wifi#fenix-tokens';
   }
 }
