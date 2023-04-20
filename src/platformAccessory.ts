@@ -29,50 +29,55 @@ export class FenixTFTThermostatPlatformAccessory {
     this.debug('Initializing Fenix TFT accessory');
 
     this.accessory.getService(this.platform.api.hap.Service.AccessoryInformation);
-    await this.updateValues();
+    this.updateValues()
+      .then(() => {
+        this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState)
+          .onGet(this.handleCurrentHeatingCoolingStateGet.bind(this))
+          .onSet(this.handleCurrentHeatingCoolingStateSet.bind(this))
+          .setProps({
+            validValues: [
+              this.platform.Characteristic.CurrentHeatingCoolingState.OFF,
+              this.platform.Characteristic.CurrentHeatingCoolingState.HEAT,
+            ],
+          });
 
-    this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState)
-      .onGet(this.handleCurrentHeatingCoolingStateGet.bind(this))
-      .onSet(this.handleCurrentHeatingCoolingStateSet.bind(this))
-      .setProps({
-        validValues: [
-          this.platform.Characteristic.CurrentHeatingCoolingState.OFF,
-          this.platform.Characteristic.CurrentHeatingCoolingState.HEAT,
-        ],
-      });
+        this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
+          .onGet(this.handleTargetHeatingCoolingStateGet.bind(this))
+          .onSet(this.handleTargetHeatingCoolingStateSet.bind(this))
+          .setProps({
+            validValues: [
+              this.platform.Characteristic.TargetHeatingCoolingState.OFF,
+              this.platform.Characteristic.TargetHeatingCoolingState.HEAT,
+              this.platform.Characteristic.TargetHeatingCoolingState.COOL,
+              this.platform.Characteristic.TargetHeatingCoolingState.AUTO,
+            ],
+          });
 
-    this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
-      .onGet(this.handleTargetHeatingCoolingStateGet.bind(this))
-      .onSet(this.handleTargetHeatingCoolingStateSet.bind(this))
-      .setProps({
-        validValues: [
-          this.platform.Characteristic.TargetHeatingCoolingState.OFF,
-          this.platform.Characteristic.TargetHeatingCoolingState.HEAT,
-          this.platform.Characteristic.TargetHeatingCoolingState.COOL,
-          this.platform.Characteristic.TargetHeatingCoolingState.AUTO,
-        ],
-      });
+        this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
+          .onGet(this.handleCurrentTemperatureGet.bind(this));
 
-    this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
-      .onGet(this.handleCurrentTemperatureGet.bind(this));
+        this.debug(
+          'Setting unit ' +
+          (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 'Celsius' : 'Fahrenheit'),
+        );
+        this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature)
+          .onGet(this.handleTargetTemperatureGet.bind(this))
+          .onSet(this.handleTargetTemperatureSet.bind(this))
+          .setProps({
+            minValue: this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 5 : 0,
+            maxValue: this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 35 : 1000,
+            minStep: this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 0.5 : 5,
+          });
 
-    this.debug(
-      'Setting unit ' +
-      (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 'Celsius' : 'Fahrenheit'),
-    );
-    this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature)
-      .onGet(this.handleTargetTemperatureGet.bind(this))
-      .onSet(this.handleTargetTemperatureSet.bind(this))
-      .setProps({
-        minValue: this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 5 : 0,
-        maxValue: this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 35 : 1000,
-        minStep: this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 0.5 : 5,
-      });
+        this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
+          .onGet(this.handleTemperatureDisplayUnitsGet.bind(this));
 
-    this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
-      .onGet(this.handleTemperatureDisplayUnitsGet.bind(this));
-
-    setInterval(() => this.updateValues(), this.temperatureCheckInterval);
+        setInterval(() => {
+          this.updateValues()
+            .then(() => this.debug('Value updates was successfully'))
+            .catch(() => this.error('Is not possible to update values'));
+        }, this.temperatureCheckInterval);
+      }).catch(() => this.error('Is not possible to update values'));
   }
 
   cToF(celsius: number): number {
