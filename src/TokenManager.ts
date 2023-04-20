@@ -73,9 +73,8 @@ export default class TokenManager {
     return currentTime > (this.parsedJwt?.payload?.exp ?? 0);
   }
 
-  isJwtTokenExpired() {
-    const currentTime = new Date().getTime() / 1000;
-    return currentTime > (this.parsedJwt?.payload?.exp ?? 0);
+  isJwtTokenExpired(token) {
+    return isJwtTokenExpired(token);
   }
 
   get sub(): string {
@@ -88,7 +87,7 @@ export default class TokenManager {
       return;
     }
     if (!this.parsedJwt?.payload?.client_id) {
-      this.logger.error('The token does not contain a client_id. '+ this.newTokenHint);
+      this.logger.error('The token does not contain a client_id. ' + this.newTokenHint);
       return;
     }
 
@@ -129,25 +128,27 @@ export default class TokenManager {
   private async loadTokensFromCustomConfig() {
     if (!await this.isCustomConfigExists()) {
       this.logger.debug('Creating custom config');
-      if (this.isJwtTokenExpired()) {
+      if (this.isJwtTokenExpired(this.token)) {
         throw new Error('JWT token is invalid. ' + this.newTokenHint);
       }
+      this.logger.debug(this.token);
       await fsExtra.writeJsonSync(
         this.customConfigPath,
         {accessToken: this.token, refreshToken: this.refreshToken},
       );
     }
+
     this.logger.debug('Loading tokens from custom config');
 
     const config = await fsExtra.readJson(this.customConfigPath);
-    if (isJwtTokenExpired(config.accessToken) && !this.isJwtTokenExpired()) {
+    if (this.isJwtTokenExpired(config.accessToken) && !this.isJwtTokenExpired(this.token)) {
       this.logger.info('Removing custom config, because contain expired token');
       await fsExtra.remove(this.customConfigPath);
       return;
     }
     this.token = config.accessToken;
     this.refreshToken = config.refreshToken;
-    if (this.isJwtTokenExpired()) {
+    if (this.isJwtTokenExpired(this.token)) {
       throw new Error('JWT token is invalid. ' + this.newTokenHint);
     }
     try {
@@ -162,8 +163,8 @@ export default class TokenManager {
     return fsExtra.pathExists(this.customConfigPath);
   }
 
-  private get newTokenHint():string{
-    return 'Please get a new token according to the documentation'
-    + 'https://github.com/tomas-kulhanek/homebridge-fenix-tft-wifi#fenix-tokens';
+  private get newTokenHint(): string {
+    return 'Please get a new token according to the documentation on '
+      + 'https://github.com/tomas-kulhanek/homebridge-fenix-tft-wifi#fenix-tokens';
   }
 }

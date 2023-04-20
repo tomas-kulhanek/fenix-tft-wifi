@@ -214,18 +214,22 @@ export class FenixTFTThermostatPlatformAccessory {
   }
 
   debug(message: string) {
-    this.logger.debug('[' + this.accessory.UUID + '] [' + this.accessory.displayName + ']: ' + message);
+    this.logger.debug(this.baseLogMessage + message);
   }
 
   info(message: string) {
-    this.logger.info('[' + this.accessory.UUID + '] [' + this.accessory.displayName + ']: ' + message);
+    this.logger.info(this.baseLogMessage + message);
   }
 
   warning(message: string) {
-    this.logger.warn('[' + this.accessory.UUID + '] [' + this.accessory.displayName + ']: ' + message);
+    this.logger.warn(this.baseLogMessage + message);
   }
 
   error(message: string) {
-    this.logger.error('[' + this.accessory.UUID + '] [' + this.accessory.displayName + ']: ' + message);
+    this.logger.error(this.baseLogMessage + message);
+  }
+
+  private get baseLogMessage(): string {
+    return '[' + this.accessory.UUID + '] [' + this.accessory.context.device.uuid + '] [' + this.accessory.displayName + ']: ';
   }
 }

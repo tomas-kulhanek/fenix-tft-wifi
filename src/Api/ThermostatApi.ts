@@ -1,7 +1,7 @@
 import axios, {Axios} from 'axios';
 import TokenManager from '../TokenManager';
 import {ThermostatMode} from '../Enum/ThermostatMode';
-import ThermostatData from "../DTO/ThermostatData";
+import ThermostatData from '../DTO/ThermostatData';
 
 export default class ThermostatApi {
 
