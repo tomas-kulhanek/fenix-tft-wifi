@@ -52,4 +52,4 @@ You must use some proxy like [Proxyman](https://proxyman.io/) on your mobile and
 - Open Proxyman and check POST request on `https://vs2-fe-identity-prod.azurewebsites.net/connect/token`
 - Response on this request contain `access_token` and `refresh_token`
 
-
+The token is only valid for 24 hours. The plugin automatically renews the token so that it is not invalidated. The renewed token, including the refresh token, is then stored in the `.fenixTftWifi.config.json` file, which is stored in the Homebridge storage path. If Homebridge has not been started for a long time, this token needs to be manually updated again using the above steps. 
