@@ -1,3 +1,8 @@
+## Preparing
+- Bette logging with accessories identifications
+- Some changes around verifications
+- Catching more errors
+
 ## 2.1.0 (2023-04-19)
 ### Notable changes
 - Change storage of tokens from config tu custom json file
