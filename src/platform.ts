@@ -27,11 +27,9 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
     this.log.debug('Finished initializing platform');
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
-      try {
-        this.initAccessories().then(() => this.log.info('Initialized')).catch(() => this.log.error('Initialize of plugin was failed'));
-      } catch (error) {
-        this.log.error('Initialize of plugin was failed');
-      }
+      this.initAccessories()
+        .then(() => this.log.info('Initialized'))
+        .catch((error) => this.log.error(`Initialize of plugin was failed ${error}`));
     });
   }
 
@@ -113,7 +111,7 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
       } catch (error) {
         this.log.error(`Error while updating accessories: ${error}`);
       }
-    }).catch(() => this.log.error('Cannot to retrieve base data. Do you have valid token?'));
+    }).catch((error) => this.log.error(`Cannot to retrieve base data. Do you have valid token? ${error}`));
   }
 
   private getTemperatureCheckInterval(): number {
