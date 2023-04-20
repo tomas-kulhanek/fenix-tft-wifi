@@ -25,9 +25,10 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
     public readonly api: API,
   ) {
     this.log.debug('Finished initializing platform:', this.config.name);
-    this.api.on('didFinishLaunching', async () => {
+    this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
-      await this.initAccessories();
+      this.initAccessories()
+        .catch(() => this.log.error('Initialize of plugin was failed'));
     });
   }
 
@@ -37,11 +38,6 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
-  /**
-   * This is an example method showing how to register discovered accessories.
-   * Accessories must only be registered once, previously created accessories
-   * must not be registered again to prevent 'duplicate UUID' errors.
-   */
   async initAccessories() {
     const tokenManager = new TokenManager(
       this.config.accessToken,
@@ -49,7 +45,7 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
       this.log,
       this.api,
     );
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await tokenManager.loadInitialTokens();
     const fenixApi = new FenixApi(tokenManager);
     fenixApi.readMyInformation().then((data) => {
       const devices: { uuid: string; name: string }[] = [];

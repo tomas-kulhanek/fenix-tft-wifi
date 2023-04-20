@@ -48,7 +48,11 @@ export default class TokenManager {
     private readonly hbApi: API,
   ) {
     this.axiosClient = axios.create();
-    this.loadTokensFromCustomConfig().then(() => this.logger.debug('Check tokens from custom config'));
+  }
+
+  async loadInitialTokens() {
+    await this.loadTokensFromCustomConfig();
+    this.logger.debug('Check tokens from custom config');
     this.refreshTokens();
     try {
       this.parsedJwt = decode(this.token);
@@ -100,13 +104,15 @@ export default class TokenManager {
           Authorization: 'Basic ' + this.token,
 
         },
-      }).then(async (response) => {
+      }).then((response) => {
       this.logger.info('Tokens are refreshed');
-      await fsExtra.writeJsonSync(
+      fsExtra.writeJsonSync(
         this.customConfigPath,
         {accessToken: response.data.access_token, refreshToken: response.data.refresh_token},
       );
-      await this.loadTokensFromCustomConfig();
+      this.loadTokensFromCustomConfig()
+        .then(() => this.logger.debug('Tokens are refreshed and loaded'))
+        .catch(() => this.logger.error('Tokens are cannot be loaded'));
     }).catch(() => this.logger.error('Token is not possible to refresh'));
   }
 
@@ -128,14 +134,17 @@ export default class TokenManager {
     }
     this.logger.debug('Loading tokens from custom config');
 
-    const config = await fsExtra.readJson(this.customConfigPath);
-    this.token = config.accessToken;
-    this.refreshToken = config.refreshToken;
-    try {
-      this.parsedJwt = decode(this.token);
-    } catch (error) {
-      this.logger.error(`JWT Token is not valid! ${error}`);
-    }
+    fsExtra.readJson(this.customConfigPath)
+      .then((config) => {
+        this.token = config.accessToken;
+        this.refreshToken = config.refreshToken;
+        try {
+          this.parsedJwt = decode(this.token);
+        } catch (error) {
+          this.logger.error(`JWT Token is not valid! ${error}`);
+          throw error;
+        }
+      });
   }
 
   private isCustomConfigExists(): Promise<boolean> {
