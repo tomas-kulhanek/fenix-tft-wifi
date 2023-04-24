@@ -12,6 +12,7 @@ import {FenixTFTThermostatPlatformAccessory} from './platformAccessory';
 import ThermostatApi from './Api/ThermostatApi';
 import FenixApi from './Api/FenixApi';
 import TokenManager from './TokenManager';
+import {BLUE, GREY, RED, RESET, GREEN} from './colors';
 
 export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
@@ -26,9 +27,9 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
   ) {
     this.log.debug('Finished initializing platform');
     this.api.on('didFinishLaunching', () => {
-      log.debug('Executed didFinishLaunching callback');
+      log.debug(`${GREY}Executed didFinishLaunching callback${RESET}`);
       this.initAccessories()
-        .then(() => this.log.info('Initialized'))
+        .then(() => this.log.info(`${GREEN}Initialized${RESET}`))
         .catch((error) => this.log.error(`Initialize of plugin was failed ${error}`));
     });
   }
@@ -72,8 +73,7 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
         const tsApi = new ThermostatApi(device.uuid, tokenManager);
         if (existingAccessory) {
           this.log.info(
-            '[' + device.uuid + '] [' + existingAccessory.displayName
-            + ']: Restoring existing Fenix TFT thermostat from cache:',
+            `${BLUE}[${device.uuid}] [${existingAccessory.displayName}]${RESET}: Restoring existing Fenix TFT thermostat from cache`,
           );
           existingAccessory.context.device = device;
           this.createThermostat(existingAccessory, tsApi);
@@ -82,8 +82,7 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
         }
 
         this.log.info(
-          '[' + device.uuid + '] [' + device.name
-          + ']: Adding new Fenix TFT thermostat:',
+          `${BLUE}[${device.uuid}] [${device.name}]${RESET}:  Adding new Fenix TFT thermostat`,
         );
         const accessory = new this.api.platformAccessory(device.name, uuid);
         accessory.context.device = device;
@@ -94,8 +93,7 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
       for (const accessory of this.accessories) {
         if (!activeUUIDs.includes(accessory.UUID)) {
           this.log.debug(
-            '[' + accessory.UUID + '] [' + accessory.displayName
-            + ']: Removing unused Fenix TFT thermostat accessory',
+            `${BLUE}[${accessory.UUID}] [${accessory.displayName}]${RESET}: ${RED}Removing unused Fenix TFT thermostat accessory ${RESET}`,
           );
           toUnregister.push(accessory);
         }
@@ -115,7 +113,7 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
   }
 
   private getTemperatureCheckInterval(): number {
-    this.log.debug('Thermostat check interval is ' + (this.config.temperatureCheckInterval || 30) + ' minutes');
+    this.log.debug(`${GREY}Thermostat check interval is ${this.config.temperatureCheckInterval || 30} minutes${RESET}`);
     return (this.config.temperatureCheckInterval || 30) * 60000;
   }
 

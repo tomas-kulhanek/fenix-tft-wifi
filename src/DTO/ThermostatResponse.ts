@@ -11,18 +11,18 @@ export default interface ThermostatResponse {
   Dm: { timestamp: number; wattType: string; value: number; min: number; max: number };
   Er: { timestamp: number; wattType: string; value: number[] };
   Gp: { timestamp: number; wattType: string; value: string };
-  "H1": { timestamp: number; wattType: string; value: string };
-  "H2": { timestamp: number; wattType: string; value: string };
-  "H3": { timestamp: number; wattType: string; value: number[] };
-  "H4": { timestamp: number; wattType: string; value: number };
-  "Hs": { timestamp: number; wattType: string; value: number };
+  'H1': { timestamp: number; wattType: string; value: string };
+  'H2': { timestamp: number; wattType: string; value: string };
+  'H3': { timestamp: number; wattType: string; value: number[] };
+  'H4': { timestamp: number; wattType: string; value: number };
+  'Hs': { timestamp: number; wattType: string; value: number };
   Id: { timestamp: number; wattType: string; value: string };
   Ma: { timestamp: number; wattType: string; value: number; unit: string; divFactor: number; min: number; max: number; increment: 5 };
   Pf: { timestamp: number; wattType: string; value: number[] };
   Rn: { timestamp: number; wattType: string; value: string }; //Thermostat name
-  "S1": { timestamp: number; wattType: string; value: string }; // ID
-  "S2": { timestamp: number; wattType: string; value: string };
-  "S3": { timestamp: number; wattType: string; value: number };
+  'S1': { timestamp: number; wattType: string; value: string }; // ID
+  'S2': { timestamp: number; wattType: string; value: string };
+  'S3': { timestamp: number; wattType: string; value: number };
   Sp: { timestamp: number; wattType: string; value: string; unit: string; divFactor: number; min: number; max: number };
   St: { timestamp: number; wattType: string; value: number };
   Sv: { timestamp: number; wattType: string; value: string }; // Software version

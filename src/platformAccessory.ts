@@ -3,6 +3,7 @@ import {FenixTFTWifiPlatform} from './platform';
 import ThermostatApi from './Api/ThermostatApi';
 import ThermostatData from './DTO/ThermostatData';
 import {ThermostatMode} from './Enum/ThermostatMode';
+import {BLUE, RESET} from './colors';
 
 export class FenixTFTThermostatPlatformAccessory {
 
@@ -75,9 +76,9 @@ export class FenixTFTThermostatPlatformAccessory {
         setInterval(() => {
           this.updateValues()
             .then(() => this.debug('Value updates was successfully'))
-            .catch(() => this.error('Is not possible to update values'));
+            .catch((error) => this.error(`Is not possible to update values ${error}`));
         }, this.temperatureCheckInterval);
-      }).catch(() => this.error('Is not possible to update values'));
+      }).catch((error) => this.error(`Is not possible to update values ${error}`));
   }
 
   cToF(celsius: number): number {
@@ -230,6 +231,6 @@ export class FenixTFTThermostatPlatformAccessory {
   }
 
   private get baseLogMessage(): string {
-    return '[' + this.accessory.context.device.uuid + '] [' + this.accessory.displayName + ']: ';
+    return `${BLUE}[${this.accessory.context.device.uuid}] [${this.accessory.displayName}]: ${RESET}`;
   }
 }

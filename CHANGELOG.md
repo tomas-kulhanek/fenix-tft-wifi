@@ -1,5 +1,5 @@
 ## 2.1.1 (2023-04-20)
-- Bette logging with accessories identifications
+- Better logging with accessories identifications
 - Some changes around verifications
 - Catching more errors
 
