@@ -93,12 +93,14 @@ export class FenixTFTThermostatPlatformAccessory {
 
   handleCurrentHeatingCoolingStateGet() {
     this.debug('Triggered GET CurrentHeatingCoolingState');
-    return this.thermostatData?.currentHeatingCoolingState ?? this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
+    const temp = this.thermostatData?.currentHeatingCoolingState ?? this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
+    this.debug('Current heating cooling state' + this.cyanize(temp));
+    return temp;
   }
 
   handleTargetHeatingCoolingStateGet() {
     const temp = this.thermostatData?.targetHeatingCoolingState ?? this.platform.Characteristic.TargetHeatingCoolingState.OFF;
-    this.info('Target temperature  was set on ' + this.cyanize(temp + this.stringifyUnit));
+    this.debug('Target heating cooling state' + this.cyanize(temp));
     return temp;
   }
 
@@ -138,34 +140,33 @@ export class FenixTFTThermostatPlatformAccessory {
   handleCurrentTemperatureGet() {
     if (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
       if (!this.thermostatData?.actualTemperature) {
-        this.info('Current temperature ' + this.cyanize('0' + this.stringifyUnit));
+        this.debug('Current temperature ' + this.cyanize('0' + this.stringifyUnit));
         return 0;
       }
       const temp = this.fToC(this.thermostatData?.actualTemperature);
-      this.info('Current temperature ' + this.cyanize(temp + this.stringifyUnit));
+      this.debug('Current temperature ' + this.cyanize(temp + this.stringifyUnit));
       return temp;
     }
 
     const temp = this.thermostatData?.actualTemperature ?? 0;
-    this.info('Current temperature ' + this.cyanize(temp + this.stringifyUnit));
+    this.debug('Current temperature ' + this.cyanize(temp + this.stringifyUnit));
     return temp;
   }
 
   handleTargetTemperatureGet() {
-    this.debug('Triggered GET TargetTemperature');
     if (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
       if (!this.thermostatData?.requiredTemperature) {
-        this.info('Target temperature is ' + this.cyanize('0' + this.stringifyUnit));
+        this.debug('Target temperature is ' + this.cyanize('0' + this.stringifyUnit));
         return 0;
       }
 
       const temp = this.fToC(this.thermostatData?.requiredTemperature);
-      this.info('Target temperature is ' + this.cyanize(temp + this.stringifyUnit));
+      this.debug('Target temperature is ' + this.cyanize(temp + this.stringifyUnit));
       return temp;
     }
 
     const temp = this.thermostatData?.requiredTemperature ?? 0;
-    this.info('Target temperature is ' + this.cyanize(temp + this.stringifyUnit));
+    this.debug('Target temperature is ' + this.cyanize(temp + this.stringifyUnit));
     return temp;
   }
 
@@ -174,7 +175,7 @@ export class FenixTFTThermostatPlatformAccessory {
   }
 
   handleTargetTemperatureSet(value) {
-    this.info('Triggered SET TargetTemperature:' + this.cyanize(value + this.stringifyUnit));
+    this.info('Target temperature was set on ' + this.cyanize(value + this.stringifyUnit));
 
     const targetTemperature = value;
     if (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
