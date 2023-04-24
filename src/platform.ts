@@ -139,6 +139,6 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
   }
 
   private colorizedThermostatIdentifications(device: { uuid: string; name: string }): string {
-    return `${LIGHT_GREY}[${device.uuid}]${RESET} ${BLUE}[${device.name}]${RESET}:`;
+    return `${LIGHT_GREY}[${device.uuid}]${RESET} ${BLUE}[${device.name}]${RESET}: `;
   }
 }
