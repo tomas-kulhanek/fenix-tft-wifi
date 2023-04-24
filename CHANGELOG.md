@@ -1,3 +1,6 @@
+## 2.1.2 (2023-04-24)
+- Add some logs
+
 ## 2.1.1 (2023-04-20)
 - Better logging with accessories identifications
 - Some changes around verifications
