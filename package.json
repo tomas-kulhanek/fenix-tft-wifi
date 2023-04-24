@@ -45,5 +45,11 @@
     "rimraf": "^3.0.2",
     "ts-node": "^10.3.0",
     "typescript": "^4.4.4"
-  }
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/tomas-kulhanek"
+    }
+  ]
 }
