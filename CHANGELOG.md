@@ -1,3 +1,8 @@
+## 2.1.3 (2023-04-24)
+- Better logs
+- Replacing old display name with actually name from Fenix servers
+- Showing correct ID when is accessory deleted
+
 ## 2.1.2 (2023-04-24)
 - Add some logs
 

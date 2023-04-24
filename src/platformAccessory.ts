@@ -3,7 +3,7 @@ import {FenixTFTWifiPlatform} from './platform';
 import ThermostatApi from './Api/ThermostatApi';
 import ThermostatData from './DTO/ThermostatData';
 import {ThermostatMode} from './Enum/ThermostatMode';
-import {BLUE, RESET} from './colors';
+import {BLUE, CYAN, GREEN, GREY, LIGHT_GREY, RESET} from './colors';
 
 export class FenixTFTThermostatPlatformAccessory {
 
@@ -26,15 +26,13 @@ export class FenixTFTThermostatPlatformAccessory {
       || this.accessory.addService(this.platform.api.hap.Service.Thermostat);
   }
 
-  async initialize() {
+  initialize() {
     this.debug('Initializing Fenix TFT accessory');
 
-    this.accessory.getService(this.platform.api.hap.Service.AccessoryInformation);
     this.updateValues()
       .then(() => {
         this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState)
           .onGet(this.handleCurrentHeatingCoolingStateGet.bind(this))
-          .onSet(this.handleCurrentHeatingCoolingStateSet.bind(this))
           .setProps({
             validValues: [
               this.platform.Characteristic.CurrentHeatingCoolingState.OFF,
@@ -59,7 +57,7 @@ export class FenixTFTThermostatPlatformAccessory {
 
         this.debug(
           'Setting unit ' +
-          (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? 'Celsius' : 'Fahrenheit'),
+          this.cyanize(this.stringifyUnit),
         );
         this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature)
           .onGet(this.handleTargetTemperatureGet.bind(this))
@@ -82,13 +80,15 @@ export class FenixTFTThermostatPlatformAccessory {
   }
 
   cToF(celsius: number): number {
-    this.debug('Converting ' + celsius + ' to Fahrenheit');
-    return celsius * 9 / 5 + 32;
+    const converted = celsius * 9 / 5 + 32;
+    this.debug('Converting ' + this.cyanize(celsius + '°C') + `${GREY} to ${RESET}${this.cyanize(converted + '°F')}`);
+    return converted;
   }
 
   fToC(fahrenheit: number): number {
-    this.debug('Converting ' + fahrenheit + ' to Celsius');
-    return (fahrenheit - 32) * 5 / 9;
+    const converted = Math.round((((fahrenheit - 32) * 5 / 9) + Number.EPSILON) * 100) / 100;
+    this.debug('Converting ' + this.cyanize(fahrenheit + '°F') + `${GREY} to ${RESET}${this.cyanize(converted + '°C')}`);
+    return converted;
   }
 
   handleCurrentHeatingCoolingStateGet() {
@@ -96,19 +96,14 @@ export class FenixTFTThermostatPlatformAccessory {
     return this.thermostatData?.currentHeatingCoolingState ?? this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
   }
 
-  handleCurrentHeatingCoolingStateSet(value) {
-    this.info('Triggered SET CurrentHeatingCoolingState:' + value);
-  }
-
   handleTargetHeatingCoolingStateGet() {
-    this.debug('Triggered GET TargetHeatingCoolingState');
     const temp = this.thermostatData?.targetHeatingCoolingState ?? this.platform.Characteristic.TargetHeatingCoolingState.OFF;
-    this.debug('Temperature ' + temp);
+    this.info('Target temperature  was set on ' + this.cyanize(temp + this.stringifyUnit));
     return temp;
   }
 
   handleTargetHeatingCoolingStateSet(value) {
-    this.info('Triggered SET TargetHeatingCoolingState:' + value);
+    this.info(`Changing thermostat mode from ${this.cyanize(this.thermostatData?.mode)} to ${this.cyanize(value)}`);
     if (!this.thermostatData) {
       this.warning('Thermostat data was not found');
       return;
@@ -116,44 +111,43 @@ export class FenixTFTThermostatPlatformAccessory {
     switch (value) {
       case this.platform.Characteristic.TargetHeatingCoolingState.COOL:
         this.thermostatData.mode = ThermostatMode.ANTIFREEZE;
-        this.debug('Setting Antifreeze mode');
+        this.debug('Setting ' + this.cyanize('Antifreeze mode'));
         break;
       case this.platform.Characteristic.TargetHeatingCoolingState.AUTO:
         this.thermostatData.mode = ThermostatMode.AUTO;
-        this.debug('Setting Auto mode');
+        this.debug('Setting ' + this.cyanize('Auto mode'));
         break;
       case this.platform.Characteristic.TargetHeatingCoolingState.OFF:
         this.thermostatData.mode = ThermostatMode.OFF;
-        this.debug('Setting Off mode');
+        this.debug('Setting ' + this.cyanize('Off mode'));
         break;
       default:
         this.thermostatData.mode = ThermostatMode.MANUAL;
-        this.debug('Setting Manual mode');
+        this.debug('Setting ' + this.cyanize('Manual mode'));
         this.tApi.setTemperature(this.thermostatData)
-          .then(() => this.info('Manual mode was set'))
+          .then(() => this.info(`${GREEN}Manual mode was set${RESET}`))
           .catch(() => this.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
         return;
     }
 
     this.tApi.changeMode(this.thermostatData.mode)
-      .then(() => this.info('Mode was set'))
+      .then(() => this.info(`${GREEN}Mode was set${RESET}`))
       .catch(() => this.error('Cannot to set mode for thermostat ' + this.accessory.displayName));
   }
 
   handleCurrentTemperatureGet() {
-    this.debug('Triggered GET CurrentTemperature');
-
     if (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
       if (!this.thermostatData?.actualTemperature) {
+        this.info('Current temperature ' + this.cyanize('0' + this.stringifyUnit));
         return 0;
       }
       const temp = this.fToC(this.thermostatData?.actualTemperature);
-      this.debug('Current temperature ' + temp);
+      this.info('Current temperature ' + this.cyanize(temp + this.stringifyUnit));
       return temp;
     }
 
     const temp = this.thermostatData?.actualTemperature ?? 0;
-    this.debug('Current temperature ' + temp);
+    this.info('Current temperature ' + this.cyanize(temp + this.stringifyUnit));
     return temp;
   }
 
@@ -161,22 +155,28 @@ export class FenixTFTThermostatPlatformAccessory {
     this.debug('Triggered GET TargetTemperature');
     if (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
       if (!this.thermostatData?.requiredTemperature) {
+        this.info('Target temperature is ' + this.cyanize('0' + this.stringifyUnit));
         return 0;
       }
 
       const temp = this.fToC(this.thermostatData?.requiredTemperature);
-      this.debug('Target temperature ' + temp);
+      this.info('Target temperature is ' + this.cyanize(temp + this.stringifyUnit));
       return temp;
     }
 
     const temp = this.thermostatData?.requiredTemperature ?? 0;
-    this.debug('Target temperature ' + temp);
+    this.info('Target temperature is ' + this.cyanize(temp + this.stringifyUnit));
     return temp;
   }
 
-  handleTargetTemperatureSet(value) {
-    this.info('Triggered SET TargetTemperature:' + value);
+  private get stringifyUnit(): string {
+    return this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS ? '°C' : '°F';
+  }
 
+  handleTargetTemperatureSet(value) {
+    this.info('Triggered SET TargetTemperature:' + this.cyanize(value + this.stringifyUnit));
+
+    const targetTemperature = value;
     if (this.temperatureUnit === this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS) {
       value = this.cToF(value);
     }
@@ -192,12 +192,11 @@ export class FenixTFTThermostatPlatformAccessory {
     this.thermostatData.requiredTemperature = value;
 
     this.tApi.setTemperature(this.thermostatData)
-      .then(() => this.info('Temperature was set'))
+      .then(() => this.info(`${GREEN}Temperature was set on ${targetTemperature}${this.stringifyUnit}${RESET}`))
       .catch(() => this.error('Cannot to set temperature for thermostat ' + this.accessory.displayName));
   }
 
   handleTemperatureDisplayUnitsGet() {
-    this.debug('Triggered GET TemperatureDisplayUnits');
     return this.temperatureUnit;
   }
 
@@ -215,7 +214,7 @@ export class FenixTFTThermostatPlatformAccessory {
   }
 
   debug(message: string) {
-    this.logger.debug(this.baseLogMessage + message);
+    this.logger.debug(this.baseLogMessage + `${GREY}${message}${RESET}`);
   }
 
   info(message: string) {
@@ -231,6 +230,13 @@ export class FenixTFTThermostatPlatformAccessory {
   }
 
   private get baseLogMessage(): string {
-    return `${BLUE}[${this.accessory.context.device.uuid}] [${this.accessory.displayName}]: ${RESET}`;
+    return `${LIGHT_GREY}[${this.accessory.context.device.uuid}]${RESET} ${BLUE}[${this.accessory.displayName}]: ${RESET}`;
+  }
+
+  private cyanize(value: string | number | undefined): string {
+    if (value === undefined) {
+      return '';
+    }
+    return `${CYAN}${value}${RESET}`;
   }
 }

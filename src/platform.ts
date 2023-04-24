@@ -12,7 +12,7 @@ import {FenixTFTThermostatPlatformAccessory} from './platformAccessory';
 import ThermostatApi from './Api/ThermostatApi';
 import FenixApi from './Api/FenixApi';
 import TokenManager from './TokenManager';
-import {BLUE, GREY, RED, RESET, GREEN} from './colors';
+import {BLUE, GREY, RED, RESET, GREEN, LIGHT_GREY} from './colors';
 
 export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
@@ -73,16 +73,17 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
         const tsApi = new ThermostatApi(device.uuid, tokenManager);
         if (existingAccessory) {
           this.log.info(
-            `${BLUE}[${device.uuid}] [${existingAccessory.displayName}]${RESET}: Restoring existing Fenix TFT thermostat from cache`,
+            this.colorizedThermostatIdentifications(device) + 'Restoring existing Fenix TFT thermostat from cache',
           );
           existingAccessory.context.device = device;
+          existingAccessory.displayName = device.name;
           this.createThermostat(existingAccessory, tsApi);
           toUpdate.push(existingAccessory);
           continue;
         }
 
         this.log.info(
-          `${BLUE}[${device.uuid}] [${device.name}]${RESET}:  Adding new Fenix TFT thermostat`,
+          this.colorizedThermostatIdentifications(device) + 'Adding new Fenix TFT thermostat',
         );
         const accessory = new this.api.platformAccessory(device.name, uuid);
         accessory.context.device = device;
@@ -93,7 +94,8 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
       for (const accessory of this.accessories) {
         if (!activeUUIDs.includes(accessory.UUID)) {
           this.log.debug(
-            `${BLUE}[${accessory.UUID}] [${accessory.displayName}]${RESET}: ${RED}Removing unused Fenix TFT thermostat accessory ${RESET}`,
+            this.colorizedThermostatIdentifications(accessory.context.device)
+            + `${RED}Removing unused Fenix TFT thermostat accessory ${RESET}`,
           );
           toUnregister.push(accessory);
         }
@@ -134,5 +136,9 @@ export class FenixTFTWifiPlatform implements DynamicPlatformPlugin {
     );
     thermostat.initialize();
     return thermostat;
+  }
+
+  private colorizedThermostatIdentifications(device: { uuid: string; name: string }): string {
+    return `${LIGHT_GREY}[${device.uuid}]${RESET} ${BLUE}[${device.name}]${RESET}:`;
   }
 }
