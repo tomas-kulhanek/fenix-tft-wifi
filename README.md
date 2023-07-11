@@ -29,7 +29,7 @@ This [homebridge](https://github.com/homebridge/homebridge) plugin allows you to
 2. Customize you homebridge configuration `config.json`.
 3. Restart homebridge, ggf. `service homebridge restart`.
 
-- Example `config.json` with one vacuum and room cleaning:
+- Example `config.json` with setting for Fenix account:
 
 ```
    "platforms": [
